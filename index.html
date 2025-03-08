@@ -1,0 +1,141 @@
+import React, { useState, useEffect } from 'react';
+import styled, { ThemeProvider } from 'styled-components';
+import { TradingViewWidget } from 'react-tradingview-widget';
+import axios from 'axios';
+
+// Dark Theme Configuration
+const darkTheme = {
+  background: '#121212',
+  text: '#FFFFFF',
+  accent: '#1DBA96', // green accent for positive movement
+  red: '#FF3B30', // red accent for negative movement
+  primary: '#2A2A2A',
+  secondary: '#383838',
+  card: '#1F1F1F',
+};
+
+// Styled Components
+const AppContainer = styled.div`
+  font-family: Arial, sans-serif;
+  background-color: ${(props) => props.theme.background};
+  color: ${(props) => props.theme.text};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+`;
+
+const HeaderContainer = styled.div`
+  background-color: ${(props) => props.theme.primary};
+  color: ${(props) => props.theme.text};
+  padding: 20px;
+  text-align: center;
+`;
+
+const CryptoPairsContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 20px;
+`;
+
+const FeedContainer = styled.div`
+  background-color: ${(props) => props.theme.secondary};
+  color: ${(props) => props.theme.text};
+  padding: 20px;
+  margin-top: 20px;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 1200px;
+`;
+
+const FeedItem = styled.div`
+  background-color: ${(props) => props.theme.card};
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const TradingViewContainer = styled.div`
+  width: 100%;
+  max-width: 1200px;
+  height: 500px;
+  margin-top: 30px;
+`;
+
+// Main App Component
+const App = () => {
+  const [selectedPair, setSelectedPair] = useState('BTCUSDT');
+  const [marketData, setMarketData] = useState([]);
+  const pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'DOGEUSDT'];
+
+  // Fetching live market data from Binance API
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      const data = await Promise.all(
+        pairs.map(async (pair) => {
+          const res = await axios.get(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`);
+          return res.data;
+        })
+      );
+      setMarketData(data);
+    };
+
+    fetchMarketData();
+    const interval = setInterval(fetchMarketData, 30000); // update every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <ThemeProvider theme={darkTheme}>
+      <AppContainer>
+        {/* Header */}
+        <HeaderContainer>
+          <h1>TradeX AI - Live Crypto Trading</h1>
+          <p>Track Top Crypto Pairs, Live AI Actions, & More</p>
+        </HeaderContainer>
+
+        {/* Select Crypto Pair Buttons */}
+        <CryptoPairsContainer>
+          <button onClick={() => setSelectedPair('BTCUSDT')}>BTC/USDT</button>
+          <button onClick={() => setSelectedPair('ETHUSDT')}>ETH/USDT</button>
+          <button onClick={() => setSelectedPair('SOLUSDT')}>SOL/USDT</button>
+          <button onClick={() => setSelectedPair('ADAUSDT')}>ADA/USDT</button>
+          <button onClick={() => setSelectedPair('DOGEUSDT')}>DOGE/USDT</button>
+        </CryptoPairsContainer>
+
+        {/* TradingView Widget */}
+        <TradingViewContainer>
+          <TradingViewWidget
+            symbol={selectedPair}
+            theme="dark"
+            locale="en"
+            width="100%"
+            height="100%"
+          />
+        </TradingViewContainer>
+
+        {/* Live Market Feed */}
+        <FeedContainer>
+          {marketData.map((item) => (
+            <FeedItem key={item.symbol}>
+              <span>{item.symbol}</span>
+              <span
+                style={{
+                  color: parseFloat(item.priceChangePercent) > 0 ? '#1DBA96' : '#FF3B30',
+                }}
+              >
+                {item.priceChangePercent}%
+              </span>
+            </FeedItem>
+          ))}
+        </FeedContainer>
+      </AppContainer>
+    </ThemeProvider>
+  );
+};
+
+export default App;
